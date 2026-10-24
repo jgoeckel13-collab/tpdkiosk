@@ -1,0 +1,47 @@
+{
+ "id": "tisbury-pd-kiosk",
+ "name": "Tisbury PD Visitor Self-Service",
+ "short_name": "Tisbury PD",
+ "description": "Visitor self-service forms for the Tisbury Police Department lobby.",
+ "lang": "en-US",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "display_override": [
+  "standalone",
+  "minimal-ui"
+ ],
+ "orientation": "any",
+ "background_color": "#ffffff",
+ "theme_color": "#0b1a55",
+ "categories": [
+  "government",
+  "productivity"
+ ],
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
