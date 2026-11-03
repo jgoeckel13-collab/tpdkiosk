@@ -23,6 +23,7 @@ iframe{width:100%;height:60vh;border:1px solid var(--bd);border-radius:8px;backg
 .li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
 .pg{position:relative;background:#fff;margin:0 0 12px;box-shadow:0 1px 6px rgba(0,0,0,.3)}#pages{overflow-x:auto}
 .fo{position:absolute;box-sizing:border-box;border:1.5px solid #e0a800;background:rgba(255,235,59,.3);border-radius:2px;cursor:pointer;overflow:hidden;white-space:nowrap;color:#000;font-family:Helvetica,Arial,sans-serif;display:flex;align-items:center;padding:0 3px}
+.fo.ml{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;align-items:flex-start;padding:2px 4px;line-height:1.25}
 .fo.done{background:rgba(76,175,80,.25);border-color:#2e7d32}.fo.act{outline:3px solid #1d4e89;z-index:2}
 .ed{position:sticky;bottom:0;z-index:5;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
 
@@ -70,7 +71,7 @@ $('#hl').src=PATCH;
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const APP='kiosk',NS='pdk_';
 const ls={get(k,d){try{const v=JSON.parse(localStorage.getItem(NS+k));return v??d}catch{return d}},set(k,v){try{localStorage.setItem(NS+k,JSON.stringify(v))}catch{}}};
-let officers=ls.get('officers',[]),cc=ls.get('cc',''),forms=[],view='home',cur=null,fields=[],values={},hasSig=false,result=null,msg='';
+const DEF_OFF=[{"name": "Chief Chris Habekost", "email": ""}, {"name": "Lt. Bill Brigham", "email": ""}, {"name": "Sgt. Sherman", "email": ""}, {"name": "Sgt. Silvia", "email": ""}, {"name": "Sgt. St. Pierre", "email": ""}, {"name": "Ofc. Sidoti", "email": ""}, {"name": "Ofc. Goeckel", "email": ""}, {"name": "Det. Hollinger", "email": ""}, {"name": "SRO Medeiros", "email": ""}, {"name": "Ofc. Durawa", "email": ""}, {"name": "Ofc. Grant", "email": ""}];let officers=ls.get('officers',DEF_OFF),cc=ls.get('cc',''),forms=[],view='home',cur=null,fields=[],values={},hasSig=false,result=null,msg='';
 /* IndexedDB storage for imported PDFs */
 const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('recep_'+APP,1);r.onupgradeneeded=()=>r.result.createObjectStore('forms',{keyPath:'name'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 async function dbAll(){try{const d=await idb();return await new Promise(r=>{const q=d.transaction('forms').objectStore('forms').getAll();q.onsuccess=()=>r(q.result);q.onerror=()=>r([])})}catch{return[]}}
@@ -80,7 +81,7 @@ function go(v){if(v==='home'&&(view==='fill'||view==='review'||view==='sign'))cl
 function render(){
  const a=$('#app');
  if(view==='home'){a.innerHTML=`<div class="hero"><div class="seg"><button class="${LANG==='en'?'on':''}" onclick="setLang('en')">English</button><button class="${LANG==='pt'?'on':''}" onclick="setLang('pt')">Português</button></div><img src="${PATCH}" alt="Tisbury Police patch" style="display:block;margin:16px auto 8px;height:150px;max-width:100%;object-fit:contain"><h2>Welcome to the Tisbury Police Department</h2><p class="mut" style="font-size:17px;margin:0">Select the form you need to complete. An officer will assist you.</p><div class="clock"><span id="cdate"></span><b id="ctime"></b></div></div>${officerBar()}${resumeBanner()}<div class="cards">${formCards()}</div>`}
- else if(view==='place'){a.innerHTML=`<div class="card"><h3 style="margin-top:0">Add signature box</h3><p class="mut">${e(forms[pl.i].name)} — drag on the page to draw where the signature goes.</p><label>Name of the box</label><input type="text" id="snm" value="Signature"><div class="row"><button class="alt sm" onclick="plPage(-1)">◀ Page</button><span id="plpg" class="mut"></span><button class="alt sm" onclick="plPage(1)">Page ▶</button></div><div id="plbox"></div><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('admin')">Cancel</button><button onclick="savePl()">Save signature box</button></div></div>`;drawPl()}else if(view==='setup'){a.innerHTML=setupHtml()}else if(view==='login'){a.innerHTML=loginHtml();}else if(view==='admin'){a.innerHTML=`${acctHtml()}<div class="card"><h3 style="margin-top:0">Forms (fillable PDFs)</h3>
+ else if(view==='place'){a.innerHTML=`<div class="card"><h3 style="margin-top:0">Add signature box</h3><p class="mut">${e(forms[pl.i].name)} — drag on the page to draw where the signature goes.</p><label>Name of the box</label><input type="text" id="snm" value="Signature"><div class="row"><button class="alt sm" onclick="plPage(-1)">◀ Page</button><span id="plpg" class="mut"></span><button class="alt sm" onclick="plPage(1)">Page ▶</button></div><div id="plbox"></div><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('admin')">Cancel</button><button onclick="savePl()">Save signature box</button></div></div>`;drawPl()}else if(view==='setup'){a.innerHTML=setupHtml()}else if(view==='login'){a.innerHTML=loginHtml();}else if(view==='admin'){a.innerHTML=`${acctHtml()}${pdRelayCard()}<div class="card"><h3 style="margin-top:0">Forms (fillable PDFs)</h3>
  <label>Language of imported forms</label><select onchange="importLang=this.value"><option value="en" ${importLang==='en'?'selected':''}>English</option><option value="pt" ${importLang==='pt'?'selected':''}>Português</option></select><label>PDF files</label><input type="file" id="pf" accept="application/pdf,.pdf" multiple onchange="addForms(this.files)"><p id="imsg" class="mut"></p>
  ${forms.map((f,i)=>`<div class="li"><span>${e(f.name)} <span class="mut">${(f.lang||'en')==='pt'?'Português':'English'}${f.builtin?' · built in':''}</span></span>${f.builtin?'':`<span><button class="alt sm" onclick="placeSig(${i})">Add signature box</button> <button class="alt sm" onclick="delForm(${i})">Remove</button></span>`}</div>`).join('')}</div>
  <div class="card"><h3 style="margin-top:0">Officers</h3>
@@ -187,8 +188,8 @@ async function drawPages(){const box=$('#pages');if(!box||!pdfjsDoc)return;box.i
    el.onclick=()=>pick(fi,w);wrap.appendChild(el);ovs.push({el,fi,w})}))}
  paint();{const ae=document.activeElement;if(!(ae&&ae.closest&&ae.closest('#ed')))edit()}}
 function paint(){applyRules();ovs.forEach(({el,fi,w})=>{const f=fields[fi],v=values[f.name];let t='',done=false;
- if(f.t==='check'){done=!!v;t=v?'✓':''}else if(f.t==='radio'){done=!!v;t=v&&v===w.o?'●':''}else if(f.t==='sig'){done=!!v;t=v?'':'✍ Sign here';el.style.backgroundImage=v?'url("'+v+'")':'';el.style.backgroundSize='contain';el.style.backgroundRepeat='no-repeat';el.style.backgroundPosition='center'}else{done=!!v;t=v?String(v).split('\n')[0]:''}
- el.textContent=t;el.classList.toggle('done',done);el.classList.toggle('act',fi===af)})}
+ if(f.t==='check'){done=!!v;t=v?'✓':''}else if(f.t==='radio'){done=!!v;t=v&&v===w.o?'●':''}else if(f.t==='sig'){done=!!v;t=v?'':'✍ Sign here';el.style.backgroundImage=v?'url("'+v+'")':'';el.style.backgroundSize='contain';el.style.backgroundRepeat='no-repeat';el.style.backgroundPosition='center'}else{done=!!v;t=v?(f.multi?String(v):String(v).split('\n')[0]):''}
+ el.classList.toggle('ml',!!f.multi&&f.t==='text');el.textContent=t;el.classList.toggle('done',done);el.classList.toggle('act',fi===af)})}
 function pick(fi,w){const f=fields[fi];af=fi;if(f.t==='check')values[f.name]=!values[f.name];else if(f.t==='radio'&&w.o!==undefined)values[f.name]=w.o;paint();edit(f.t==='text'||f.t==='sel');if(f.kind)setTimeout(()=>{try{$('#edv').showPicker()}catch{}},60)}
 function stepF(d){const n=fields.length;do{af=(af+d+n)%n}while(!fields[af].widgets.length);paint();edit(true);const o=ovs.find(x=>x.fi===af);if(o)o.el.scrollIntoView({block:'center',behavior:'smooth'})}
 function edit(foc){const el=$('#ed');if(!el||!fields.length)return;const f=fields[af],n=e(f.name);let c='';
@@ -523,11 +524,19 @@ function setLang(l,home){LANG=l;document.documentElement.lang=l==='pt'?'pt-BR':'
 const pdT2=(en,pt)=>LANG==='pt'?pt:en;
 const PD_NOREPLY='Do Not Reply <no-reply@no-reply.invalid>';
 function pdNote(id,t,ok){const g=document.getElementById(id);if(g){g.style.color=ok===false?'#c0392b':ok?'#0a8f4a':'';g.textContent=t}}
-function pdDoneBtns(touch){const has=result&&result.sel&&result.sel.some(o=>o.email);
- const lbl=has?(touch?pdT2('🖨️ Print / Send to officer','🖨️ Imprimir / Enviar ao policial'):pdT2('🖨️ Print / Send to officer','🖨️ Imprimir / Enviar ao policial')):(touch?'🖨️ Print / Share':'🖨️ Print');
+function pdDoneBtns(touch){const has=result&&result.sel&&result.sel.some(o=>o.email),auto=pdSvcOn();
+ const lbl=has?(auto?pdT2('🖨️ Print / Sent to officer','🖨️ Imprimir / Enviado ao policial'):pdT2('🖨️ Print / Send to officer','🖨️ Imprimir / Enviar ao policial')):(touch?'🖨️ Print / Share':'🖨️ Print');
  return`<button class="big" onclick="pdPrint()">${lbl}</button>${has?'':'<button class="big" onclick="emailIt()">✉️ Email officer</button>'}<p id="pdPs" style="flex-basis:100%;margin:4px 0 0;min-height:1.2em;font-weight:600"></p>`}
 function pdPrint(){const cs=selCopies();if(!cs.length)return needCopy();const offs=(result.sel||[]).filter(o=>o.email);
  if(!offs.length)return printIt();
+ if(pdSvcOn()){printIt(); /* print first: the dialog/share sheet must open straight from the tap */
+  const key=cs.map(c=>c.key).join(',');if(result._sentKey===key)return pdNote('pdPs',pdT2('✓ Already sent to ','✓ Já enviado para ')+offs.map(o=>o.name).join(', '),true);
+  pdNote('pdPs',pdT2('Sending to the officer...','Enviando ao policial...'));
+  const both=cs.length>1,subject='Completed form: '+dispName()+' ('+result.dt+')'+(cs.some(c=>c.key==='en')?' - English copy':''),
+   text='Completed form "'+dispName()+'" dated '+result.dt+'.'+(both?' Attached: the Portuguese original and the English copy.':' The PDF is attached.');
+  pdSend({kind:'officer',to:offs.map(o=>o.email),subject,text,pdfs:cs.map(c=>({filename:cName(c),pdf:toB64(c.bytes)}))})
+   .then(()=>{result._sentKey=key;pdNote('pdPs',pdT2('✓ Sent to ','✓ Enviado para ')+offs.map(o=>o.name).join(', '),true)})
+   .catch(x=>pdNote('pdPs',pdT2('Printed, but the email to the officer failed: ','Impresso, mas o e-mail ao policial falhou: ')+x.message,false));return}
  if(matchMedia('(pointer:coarse)').matches){emailIt();return} /* phone/tablet: one share sheet offers Print and Mail */
  printIt();setTimeout(()=>{emailIt();pdNote('pdPs',pdT2('Email to ','E-mail para ')+offs.map(o=>o.name).join(', ')+pdT2(' is ready: open it and press Send.',' está pronto: abra-o e toque em Enviar.'),true)},800)}
 function pdSelfBtn(){return`<div id="pdSelf" style="flex-basis:100%;width:100%;box-sizing:border-box;margin-top:12px;padding:14px;border:1px solid var(--bd);border-radius:12px;text-align:left">
@@ -541,6 +550,10 @@ function pdSelfMail(){const cs=selCopies();if(!cs.length)return needCopy();const
  const pt=LANG==='pt',subject=(pt?'Sua cópia: ':'Your copy: ')+dispName()+' - Tisbury Police',
   body=pt?'Em anexo está a cópia do formulário que você preencheu no Departamento de Polícia de Tisbury.\n\nEsta é uma mensagem automática. Respostas a este e-mail não são recebidas.'
          :'Attached is a copy of the form you completed at the Tisbury Police Department.\n\nThis is an automated message. Replies to this email are not received.';
+ if(pdSvcOn()){const b=$('#pdSo');b.disabled=true;pdNote('pdSm',pdT2('Sending...','Enviando...'));
+  pdSend({kind:'self',self:em,lang:LANG,name:dispName(),pdfs:cs.map(c=>({filename:cName(c),pdf:toB64(c.bytes)}))})
+   .then(()=>{pdNote('pdSm',pdT2('Sent to ','Enviado para ')+em+pdT2('. Check your inbox (and junk folder).','. Verifique sua caixa de entrada (e a pasta de spam).'),true);inp.value=''})
+   .catch(x=>pdNote('pdSm',pdT2('Could not send: ','Não foi possível enviar: ')+x.message,false)).finally(()=>{b.disabled=false});return}
  if(matchMedia('(pointer:coarse)').matches){try{navigator.clipboard.writeText(em)}catch{}
   const files=cs.map(c=>new File([c.bytes],cName(c),{type:'application/pdf'}));
   if(navigator.canShare&&navigator.canShare({files})){navigator.share({files,title:subject,text:'To: '+em+'\n'+subject+'\n'+body}).catch(()=>{});
@@ -550,7 +563,29 @@ function pdSelfMail(){const cs=selCopies();if(!cs.length)return needCopy();const
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([eml],{type:'message/rfc822'}));a.download=baseName()+'_copy.eml';document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(a.href)},4000);
   pdNote('pdSm',pdT2('Your email is ready (addressed to ','Seu e-mail está pronto (para ')+em+pdT2('). Open it and press Send.','). Abra-o e toque em Enviar.'),true)}
  catch(x){pdNote('pdSm',pdT2('Could not create the email: ','Não foi possível criar o e-mail: ')+x.message,false)}}
-/* ==== end step 5 additions ==== */
 
+/* automatic email through a sending service (Google Apps Script or TPD Central server) */
+const pdSvc=()=>{const v=ls.get('mailsvc',{});return v&&v.url&&v.key?v:null};
+const pdSvcOn=()=>!!pdSvc()&&navigator.onLine;
+async function pdSend(payload){const v=pdSvc();if(!v)throw new Error('Email sending is not set up');
+ const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),60000);
+ try{const r=await fetch(v.url,{method:'POST',headers:{'content-type':'text/plain;charset=utf-8'},body:JSON.stringify({...payload,key:v.key}),signal:ctl.signal,redirect:'follow',credentials:'omit'});
+  let d=null;try{d=await r.json()}catch{}
+  if(!d)throw new Error('No answer from the email service ('+r.status+')');if(d.error)throw new Error(d.error);if(!r.ok)throw new Error('Error '+r.status);return d}
+ catch(x){if(x.name==='AbortError')throw new Error('The email service took too long');if(x instanceof TypeError)throw new Error('Could not reach the email service');throw x}
+ finally{clearTimeout(t)}}
+function pdRelayCard(){const v=ls.get('mailsvc',{})||{};
+ return`<div class="card" id="pdMail"><h3 style="margin-top:0">Email sending</h3>
+ <p class="mut">Optional. With a sending service, <b>Print / Sent to officer</b> and <b>Want a copy?</b> send automatically. Without one, they open an email on this device instead. The address can be your Google Apps Script web app (ends in <code>/exec</code>) or your TPD Central server (ends in <code>/api/relay</code>).</p>
+ <label>Sending service address</label><input type="url" id="svU" value="${e(v.url||'')}" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" autocapitalize="off">
+ <label>Key</label><input type="password" id="svK" value="${e(v.key||'')}" autocomplete="new-password">
+ <div class="row"><button class="sm" onclick="pdSvcSave()">Save</button><button class="alt sm" onclick="pdSvcTest()">Send test email</button><button class="alt sm" onclick="pdSvcClear()">Turn off</button></div><p id="svM" class="mut">${v.url?'On: emails send automatically.':'Off: emails open on this device.'}</p></div>`}
+function pdSvcSave(){const url=$('#svU').value.trim(),key=$('#svK').value.trim(),m=$('#svM');
+ if(!/^(https:\/\/\S+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/\S*)$/.test(url)){m.textContent='The address must start with https://';return false}if(!key){m.textContent='Enter the key.';return false}
+ ls.set('mailsvc',{url,key});m.textContent='Saved. Emails now send automatically.';return true}
+function pdSvcClear(){ls.set('mailsvc',{});$('#svU').value='';$('#svK').value='';$('#svM').textContent='Off: emails open on this device.'}
+async function pdSvcTest(){if(!pdSvcSave())return;const to=prompt('Send a test email to:');if(!to)return;const m=$('#svM');m.textContent='Sending...';
+ try{await pdSend({kind:'test',to:[to.trim()]});m.textContent='Test email sent to '+to.trim()+'. Check that inbox (and junk).'}catch(x){m.textContent='Test failed: '+x.message}}
+/* ==== end step 5 additions ==== */
 dbAll().then(r=>{const bn=new Set(BUILTIN.map(x=>x.name));forms=[...builtinForms(),...r.filter(x=>!bn.has(x.name))];render()});render();
 </script></body></html>
