@@ -364,8 +364,13 @@ function touch(){clearTimeout(idleT);if(session)idleT=setTimeout(logout,300000)}
 ['pointerdown','keydown'].forEach(ev=>addEventListener(ev,touch));
 let hid=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)hid=Date.now();else if(session&&hid&&Date.now()-hid>120000)logout()});
 function logout(){session=null;editOff=-1;clearTimeout(idleT);go('home')}
-function setupHtml(){return`<div class="card"><h3 style="margin-top:0">Create admin account</h3><p class="mut">First-time setup. The admin manages staff logins, forms and officers.</p><label>Username</label><input type="text" id="au" autocapitalize="off" autocomplete="off"><label>Password (min 10 characters)</label><input type="password" id="ap"><label>Confirm password</label><input type="password" id="ap2"><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('home')">Cancel</button><button onclick="createAdmin()">Create admin</button></div></div>`}
+function setupHtml(){return`<div class="card"><h3 style="margin-top:0">Create admin account</h3><p class="mut">First-time setup. The admin manages staff logins, forms and officers.</p><label>Setup code</label><input type="text" id="asc" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX"><p class="mut" style="margin:4px 0 0">Only department staff have this code.</p><label>Username</label><input type="text" id="au" autocapitalize="off" autocomplete="off"><label>Password (min 10 characters)</label><input type="password" id="ap"><label>Confirm password</label><input type="password" id="ap2"><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('home')">Cancel</button><button onclick="createAdmin()">Create admin</button></div></div>`}
+/* The first admin needs the department setup code. Only its hash is kept here. */
+const SETUP_SALT='0ec9b806a77c5fc95c9e6aee6a4f7935',SETUP_HASH='d97430165affd5a8f7c5958c5ee05c140e928e8076bb2e1f996c13502086818e';let setupFails=0,setupWait=0;
+async function setupCodeOk(c){const n=String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(n.length!==12)return false;try{return(await hashPw(n,SETUP_SALT)).hash===SETUP_HASH}catch{return false}}
 async function createAdmin(){if(users.length)return;const u=$('#au').value.trim(),p=$('#ap').value;
+ if(setupWait>Date.now())return say('Too many wrong setup codes. Try again in '+Math.ceil((setupWait-Date.now())/60000)+' min.');
+ if(!await setupCodeOk(($('#asc')||{}).value)){if(++setupFails>=5){setupFails=0;setupWait=Date.now()+600000}return say('That setup code is not correct.')}
  if(!u)return say('Enter a username.');if(p.length<10)return say('Password must be at least 10 characters.');if(p!==$('#ap2').value)return say('Passwords do not match.');
  try{users.push({u,role:'admin',...await hashPw(p),fails:0,lock:0})}catch{return say('A secure (HTTPS) connection is required.')}
  saveU();session={u,role:'admin'};touch();go('admin')}
