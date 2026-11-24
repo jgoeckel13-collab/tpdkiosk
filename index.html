@@ -165,7 +165,7 @@ function formFolders(){const cen=typeof pdApi==='function',me=APP==='officer'?'o
  const note=app=>app===me?'':(app==='kiosk'?'Built-in kiosk forms are managed in the Kiosk app’s own Staff setup.':'Built-in officer forms are managed in the Officer app’s own Staff setup.');
  const hid=Object.keys(kindOv.__hidden||{}).length;
  return folderHtml(me,mk(me),'')+(hid?`<div class="row"><button class="alt sm" onclick="restoreForms()">Restore ${hid} removed built-in form${hid>1?'s':''}</button></div>`:'')}
-function restoreForms(){kindOv.__hidden={};ls.set('kinds',kindOv);forms=[...builtinForms(),...forms.filter(x=>!x.builtin)];render()}
+function restoreForms(){kindOv.__hidden={};ls.set('kinds',kindOv);const imp=new Set(forms.filter(x=>!x.builtin).map(x=>x.name));forms=[...builtinForms().filter(x=>!imp.has(x.name)),...forms.filter(x=>!x.builtin)];render()}
 async function delForm(i){if(!session)return go('admin');const f=forms[i];if(!f)return;
  if(!confirm('Remove "'+f.name.replace(/\.pdf$/i,'')+'"?'+(f.builtin?' You can bring it back with "Restore removed built-in forms".':'')))return;
  if(f.builtin){const h={...(kindOv.__hidden||{})};h[f.name]=1;kindOv.__hidden=h;ls.set('kinds',kindOv)}else await dbDel(f.name);forms.splice(i,1);render()}
@@ -645,12 +645,12 @@ async function pdSvcTest(){if(!pdSvcSave())return;const to=prompt('Send a test e
  try{await pdSend({kind:'test',to:[to.trim()]});m.textContent='Test email sent to '+to.trim()+'. Check that inbox (and junk).'}catch(x){m.textContent='Test failed: '+x.message}}
 /* ==== end step 5 additions ==== */
 /* ---- app version: shown at the bottom of every screen, and a notice after an update ---- */
-const APP_VER='20261124c',APP_NOTES='Privacy and security update: a visitor\'s answers are never kept for the next person, no downloads stay on the kiosk, and Send me a copy is limited.';
+const APP_VER='20261124d',APP_NOTES='A form you import with the same name as a built-in form now replaces it for good. (Also: a visitor\'s answers are never kept for the next person, no downloads stay on the kiosk, and Send me a copy is limited.)';
 (function(){const el=document.createElement('p');el.id='appver';el.style.cssText='text-align:center;font-size:12px;color:var(--mut);margin:4px 0 18px';el.textContent='App version '+APP_VER;const mn=document.querySelector('main');if(mn)mn.after(el);
  let seen=null;try{seen=localStorage.getItem(NS+'seenVer');localStorage.setItem(NS+'seenVer',APP_VER)}catch{}
  if(!seen||seen===APP_VER)return;const b=document.createElement('div');b.id='updBanner';b.setAttribute('role','status');
  b.style.cssText='position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:99990;width:min(560px,92vw);box-sizing:border-box;background:#0a8f4a;color:#fff;border-radius:12px;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;box-shadow:0 6px 22px rgba(0,0,0,.3)';
  b.innerHTML='<b>✓ Updated to version '+e(APP_VER)+'</b> <span style="opacity:.85">(was '+e(seen)+')</span>'+(APP_NOTES?'<div style="margin-top:4px">'+e(APP_NOTES)+'</div>':'')+'<div style="text-align:right;margin-top:8px"><button class="sm" style="background:#fff;color:#0a8f4a">OK</button></div>';
  b.querySelector('button').onclick=()=>b.remove();document.body.appendChild(b);setTimeout(()=>{try{b.remove()}catch{}},20000)})();
-dbAll().then(r=>{const bn=new Set(BUILTIN.map(x=>x.name));forms=[...builtinForms(),...r.filter(x=>!bn.has(x.name))];render()});render();
+dbAll().then(r=>{const imp=new Set(r.map(x=>x.name));forms=[...builtinForms().filter(x=>!imp.has(x.name)),...r];render()});render();
 </script></body></html>
