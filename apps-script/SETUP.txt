@@ -1,0 +1,59 @@
+TISBURY PD KIOSK - EMAIL SENDING SERVICE (Google Apps Script)
+
+What it does
+  Lets the lobby kiosk send email by itself, without a mail app on the tablet:
+  - "Print / Sent to officer": emails the completed form to the assisting officer(s), CC the department
+  - "Send me a copy": emails the visitor a copy (replies are not received)
+  No mail account is signed in on the kiosk, so visitors can never see an inbox or sent mail.
+
+Built-in safety rules
+  - A secret key is required. It is kept in Script properties, never in the code.
+  - Officer emails only go to department addresses (@tisburyma.gov unless you change ALLOWED_TO).
+  - The script writes the subject and message itself, using only real form names, so nobody can send
+    their own words or a link from this account.
+  - Visitor copies: one address at a time, fixed wording, 3 per address per hour, 12 per 10 minutes.
+  - Attachments must be real PDFs (at most 3, 15 MB total).
+  - Stays under Google's daily sending limit (90 recipients a day on a free account).
+  - Nothing is stored: no PDFs, no visitor addresses.
+
+ONE-TIME SETUP (about 10 minutes, on a computer)
+1. Pick the Google account the email will come FROM. Visitors and officers see this address.
+   A department account is best (for example a new tisburypd.kiosk@gmail.com, or a Town Google
+   Workspace account if the Town has one). Do not use a personal account.
+   Ask Town IT to mark this sender as safe for @tisburyma.gov so the emails don't go to Junk.
+2. Signed in as that account, go to https://script.google.com > New project.
+   Name it "TPD Kiosk Email". Delete the sample code and paste in everything from Code.gs.
+   Click Save (disk icon).
+3. Project Settings (gear icon) > Script properties > Add script property:
+     KEY          the key Claude gave you (or any random 24+ characters)
+     ALLOWED_TO   @tisburyma.gov
+     CC           (optional) the department address to copy on officer emails
+     SENDER_NAME  Tisbury PD Kiosk
+   Click Save script properties.
+4. Deploy > New deployment > gear next to "Select type" > Web app.
+     Description:     TPD kiosk email
+     Execute as:      Me
+     Who has access:  Anyone
+   Click Deploy. Google asks for permission: Authorize access > pick the account >
+   "Google hasn't verified this app" > Advanced > Go to TPD Kiosk Email > Allow.
+   (It's your own script; it only asks to send email as you.)
+   Copy the Web app URL (it ends in /exec).
+5. On the kiosk: Staff setup > sign in > Email sending:
+     Sending service address:  the /exec URL
+     Key:                      the same KEY as step 3
+   Save, then "Send test email" to your @tisburyma.gov address. Check that inbox (and Junk).
+
+CHANGING THE CODE LATER
+  Paste the new Code.gs, Save, then Deploy > Manage deployments > pencil > Version: New version > Deploy.
+  This keeps the same /exec URL, so the kiosk needs no change.
+
+IF THE KIOSK TABLET IS EVER REPLACED OR THE KEY MAY HAVE BEEN SEEN
+  Change KEY in Script properties and enter the new key on the kiosk.
+
+TO TURN OFF VISITOR COPIES
+  Add script property SELF_ON = false.
+
+FORMS YOU IMPORT ON THE KIOSK
+  Officer emails use the form's name only if it is a known form. For a form you import, add its name
+  (without .pdf) to script property EXTRA_FORMS, separated by |   e.g.  Bike Registration|Noise Complaint
+  Otherwise the email still goes out, titled "Completed form: form".
