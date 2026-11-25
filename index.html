@@ -84,7 +84,7 @@ function go(v){if(v==='home'&&(view==='fill'||view==='review'||view==='sign'))cl
 function render(){
  const a=$('#app');
  if(view==='home'){a.innerHTML=`<div class="hero"><div class="seg"><button class="${LANG==='en'?'on':''}" onclick="setLang('en')">English</button><button class="${LANG==='pt'?'on':''}" onclick="setLang('pt')">Português</button></div><img src="${PATCH}" alt="Tisbury Police patch" style="display:block;margin:16px auto 8px;height:150px;max-width:100%;object-fit:contain"><h2>Welcome to the Tisbury Police Department</h2><p class="mut" style="font-size:17px;margin:0">Select the form you need to complete. An officer will assist you.</p><div class="clock"><span id="cdate"></span><b id="ctime"></b></div></div>${officerBar()}${resumeBanner()}<div class="cards">${formCards()}</div>${privacyNote()}`}
- else if(view==='place'){a.innerHTML=`<div class="card"><h3 style="margin-top:0">Add signature box</h3><p class="mut">${e(forms[pl.i].name)} — drag on the page to draw where the signature goes.</p><label>Name of the box</label><input type="text" id="snm" value="Signature"><div class="row"><button class="alt sm" onclick="plPage(-1)">◀ Page</button><span id="plpg" class="mut"></span><button class="alt sm" onclick="plPage(1)">Page ▶</button></div><div id="plbox"></div><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('admin')">Cancel</button><button onclick="savePl()">Save signature box</button></div></div>`;drawPl()}else if(view==='setup'){a.innerHTML=setupHtml()}else if(view==='login'){a.innerHTML=loginHtml();}else if(view==='admin'){a.innerHTML=`${heldCard()}${acctHtml()}${pdRelayCard()}<div class="card"><h3 style="margin-top:0">Forms (fillable PDFs)</h3>
+ else if(view==='place'){a.innerHTML=`<div class="card"><h3 style="margin-top:0">Add signature box</h3><p class="mut">${e(forms[pl.i].name)} — drag on the page to draw where the signature goes.</p><label>Name of the box</label><input type="text" id="snm" value="Signature"><div class="row"><button class="alt sm" onclick="plPage(-1)">◀ Page</button><span id="plpg" class="mut"></span><button class="alt sm" onclick="plPage(1)">Page ▶</button></div><div id="plbox"></div><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('admin')">Cancel</button><button onclick="savePl()">Save signature box</button></div></div>`;drawPl()}else if(view==='setup'){a.innerHTML=setupHtml()}else if(view==='login'){a.innerHTML=loginHtml();loginMode()}else if(view==='admin'){a.innerHTML=`${heldCard()}${acctHtml()}${pdRelayCard()}<div class="card"><h3 style="margin-top:0">Forms (fillable PDFs)</h3>
  <label>Language of imported forms</label><select onchange="importLang=this.value"><option value="en" ${importLang==='en'?'selected':''}>English</option><option value="pt" ${importLang==='pt'?'selected':''}>Português</option></select>${typeof pdApi==='function'?`<label>Add to</label><select id="impAud"><option value="all" ${APP!=='officer'?'selected':''}>Both apps (kiosk and officer)</option><option value="kiosk">Kiosk app only</option><option value="officer" ${APP==='officer'?'selected':''}>Officer app only</option></select>`:''}<input type="file" id="pf" accept="application/pdf,.pdf" multiple hidden onchange="addForms(this.files)"><div class="row"><button onclick="document.getElementById('pf').click()">Import form</button></div><p id="imsg" class="mut"></p>
  ${formFolders()}</div>
  <div class="card"><h3 style="margin-top:0">Officers</h3>
@@ -173,8 +173,8 @@ async function delForm(i){if(!session)return go('admin');const f=forms[i];if(!f)
 function addOff(){if(!session)return go('admin');const n=$('#on').value.trim(),m=$('#oe').value.trim();if(!n)return;officers.push({name:n,email:m});ls.set('officers',officers);render()}
 let editOff=-1;
 function offRows(){return officers.map((o,i)=>i===editOff?`<div class="li" style="flex-wrap:wrap"><input type="text" id="en" value="${e(o.name)}" style="flex:1;min-width:140px"><input type="email" id="ee" value="${e(o.email)}" placeholder="Email (optional)" style="flex:1;min-width:140px"><span><button class="sm" onclick="saveOff(${i})">Save</button> <button class="alt sm" onclick="editOff=-1;render()">Cancel</button></span></div>`:`<div class="li"><span>${e(o.name)} <span class="mut">${e(o.email)}</span></span><span><button class="alt sm" onclick="editOff=${i};render()">Edit</button> <button class="alt sm" onclick="delOff(${i})">Remove</button></span></div>`).join('')}
-function saveOff(i){if(!session)return go('admin');const n=$('#en').value.trim();if(!n)return;officers[i]={name:n,email:$('#ee').value.trim()};ls.set('officers',officers);editOff=-1;render()}
-function delOff(i){if(!session)return go('admin');editOff=-1;officers.splice(i,1);ls.set('officers',officers);render()}
+function saveOff(i){if(!session)return go('admin');const n=$('#en').value.trim();if(!n)return;{const a=offAcct(officers[i].name);if(a&&n!==a.off){if(a.auto&&!users.some(x=>x!==a&&x.u.toLowerCase()===n.toLowerCase())){if(session.u===a.u)session.u=n;if(lastCode&&lastCode.u===a.u)lastCode.u=n;a.u=n}a.off=n;saveU()}}officers[i]={name:n,email:$('#ee').value.trim()};ls.set('officers',officers);editOff=-1;render()}
+function delOff(i){if(!session)return go('admin');{const a=offAcct(officers[i].name);if(a){if(a.u===session.u)return alert('You are signed in as '+a.u+'. Another admin has to remove you.');if(a.role==='admin'&&!confirm('Removing '+officers[i].name+' also removes their admin access. Continue?'))return;if(a.auto)users.splice(users.indexOf(a),1);else{if(a.role==='admin')a.role=a.prevRole||'staff';delete a.prevRole;delete a.off}if(lastCode&&lastCode.u===a.u)lastCode=null;saveU()}}editOff=-1;officers.splice(i,1);ls.set('officers',officers);render()}
 const WORKER='vendor/pdf.worker.min.mjs';
 let pdfjsDoc=null,af=0,zoom=1,listMode=false,ovs=[];
 async function openForm(i,restore){cur=forms[i];values=restore&&restore.values?restore.values:{};af=restore&&restore.af||0;zoom=BIG?1.5:1;listMode=!window.pdfjsLib;fields=[];
@@ -365,7 +365,7 @@ async function hashPw(pw,saltHex){const salt=saltHex?Uint8Array.from(saltHex.mat
 function touch(){clearTimeout(idleT);if(session)idleT=setTimeout(logout,300000)}
 ['pointerdown','keydown'].forEach(ev=>addEventListener(ev,touch));
 let hid=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)hid=Date.now();else if(session&&hid&&Date.now()-hid>120000)logout()});
-function logout(){session=null;editOff=-1;clearTimeout(idleT);go('home')}
+function logout(){session=null;editOff=-1;lastCode=null;clearTimeout(idleT);go('home')}
 function setupHtml(){return`<div class="card"><h3 style="margin-top:0">Create admin account</h3><p class="mut">First-time setup. The admin manages staff logins, forms and officers.</p><label>Setup code</label><input type="text" id="asc" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX"><p class="mut" style="margin:4px 0 0">Only department staff have this code.</p><label>Username</label><input type="text" id="au" autocapitalize="off" autocomplete="off"><label>Password (min 10 characters)</label><input type="password" id="ap"><label>Confirm password</label><input type="password" id="ap2"><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('home')">Cancel</button><button onclick="createAdmin()">Create admin</button></div></div>`}
 /* The first admin needs the department setup code. Only its hash is kept here. */
 const SETUP_SALT='0ec9b806a77c5fc95c9e6aee6a4f7935',SETUP_HASH='d97430165affd5a8f7c5958c5ee05c140e928e8076bb2e1f996c13502086818e';let setupFails=0,setupWait=0;
@@ -376,29 +376,67 @@ async function createAdmin(){if(users.length)return;const u=$('#au').value.trim(
  if(!u)return say('Enter a username.');if(p.length<10)return say('Password must be at least 10 characters.');if(p!==$('#ap2').value)return say('Passwords do not match.');
  try{users.push({u,role:'admin',...await hashPw(p),fails:0,lock:0})}catch{return say('A secure (HTTPS) connection is required.')}
  saveU();session={u,role:'admin'};touch();go('admin')}
-function loginHtml(){return`<div class="card"><h3 style="margin-top:0">Staff login</h3><label>Username</label><input type="text" id="lu" autocapitalize="off" autocomplete="off" value="${e(lastU)}"><label>Password</label><input type="password" id="lp"><p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('home')">Cancel</button><button onclick="doLogin()">Log in</button></div></div>`}
-async function doLogin(){const u=$('#lu').value.trim(),p=$('#lp').value;lastU=u;const r=users.find(x=>x.u.toLowerCase()===u.toLowerCase());
- if(r&&r.lock>Date.now())return say('Too many attempts. Try again in '+Math.ceil((r.lock-Date.now())/60000)+' min.');
- const h=r?await hashPw(p,r.salt):await hashPw(p);
- if(!r||h.hash!==r.hash){if(r){r.fails=(r.fails||0)+1;if(r.fails>=5){r.lock=Date.now()+300000;r.fails=0}saveU()}return say('Incorrect username or password.')}
+function loginHtml(){if(!users.some(x=>x.u===lastU))lastU=(users[0]||{}).u||'';
+ return`<div class="card"><h3 style="margin-top:0">Staff login</h3><label>Name</label><select id="lu" onchange="lastU=this.value;loginMode()">${users.map(x=>`<option value="${e(x.u)}" ${x.u===lastU?'selected':''}>${e(x.u)}</option>`).join('')}</select>
+ <div id="lpw"><label>Password</label><input type="password" id="lp" autocomplete="current-password"><p class="mut" id="lhave" style="margin:6px 0 0" hidden><a href="#" onclick="loginMode(1);return false">I have a one-time code</a></p></div>
+ <div id="lcode" hidden><p class="mut" style="margin:10px 0 0">Choose your own password. Enter the one-time code an admin gave you.</p><label>One-time code</label><input type="text" id="lc" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX"><label>New password (min 10 characters)</label><input type="password" id="lnp" autocomplete="new-password"><label>Confirm new password</label><input type="password" id="lnp2" autocomplete="new-password"><p class="mut" id="lusepw" style="margin:6px 0 0" hidden><a href="#" onclick="loginMode(0);return false">Use my password instead</a></p></div>
+ <p id="amsg" style="color:#c0392b"></p><div class="row"><button class="alt" onclick="go('home')">Cancel</button><button onclick="doLogin()">Log in</button></div></div>`}
+let lMode=null;
+function loginMode(f){const r=users.find(x=>x.u===($('#lu')||{}).value);if(!r)return;if(f===undefined)f=r.code&&!r.hash?1:0;if(!r.code)f=0;if(!r.hash)f=1;lMode=f;
+ $('#lpw').hidden=!!f;$('#lcode').hidden=!f;$('#lhave').hidden=!r.code;$('#lusepw').hidden=!r.hash;say('')}
+async function doLogin(){const u=$('#lu').value,r=users.find(x=>x.u===u);lastU=u;if(!r)return say('Pick your name.');
+ if(r.lock>Date.now())return say('Too many attempts. Try again in '+Math.ceil((r.lock-Date.now())/60000)+' min.');
+ const bad=m=>{r.fails=(r.fails||0)+1;if(r.fails>=5){r.lock=Date.now()+300000;r.fails=0}saveU();return say(m)};
+ if(lMode){const c=String($('#lc').value||'').toUpperCase().replace(/[^A-Z0-9]/g,''),p=$('#lnp').value;
+  if(!r.code)return say('There is no one-time code for '+r.u+'. Ask an admin for one.');
+  if(r.code.exp<Date.now())return say('That one-time code has expired. Ask an admin for a new one.');
+  if((await hashPw(c,r.code.salt)).hash!==r.code.hash)return bad('That one-time code is not correct.');
+  if(p.length<10)return say('Password must be at least 10 characters.');if(p!==$('#lnp2').value)return say('Passwords do not match.');
+  Object.assign(r,await hashPw(p),{fails:0,lock:0});delete r.code;saveU();session={u:r.u,role:r.role};touch();go('admin');return}
+ const p=$('#lp').value;if(!r.hash)return say('Use your one-time code to choose a password.');
+ if((await hashPw(p,r.salt)).hash!==r.hash)return bad('Incorrect name or password.');
  r.fails=0;saveU();session={u:r.u,role:r.role};touch();go('admin')}
 function officerBar(){return APP==='officer'&&session?`<p class="mut" style="margin:10px 0 0;text-align:center">Officer portal &middot; signed in as <b>${e(session.u)}</b> &middot; <a href="#" onclick="logout();return false">Log out</a></p>`:''}
 function acctHtml(){const adm=session.role==='admin';
  return`<div class="card"><div class="li"><span>Signed in as <b>${e(session.u)}</b> (${session.role})</span><button class="alt sm" onclick="logout()">Log out</button></div></div>
- <div class="card"><h3 style="margin-top:0">${adm?'Reset a password':'Change my password'}</h3>
- <select id="ru">${users.filter(x=>adm||x.u===session.u).map(x=>`<option ${x.u===session.u?'selected':''}>${e(x.u)}</option>`).join('')}</select>
- <label>Your current password</label><input type="password" id="rpo" autocomplete="current-password"><label>New password (min 10 characters)</label><input type="password" id="rp" autocomplete="new-password"><div class="row"><button class="sm" onclick="resetPw()">Update password</button></div></div>
- ${adm?`<div class="card"><h3 style="margin-top:0">Accounts</h3>${users.map((x,i)=>`<div class="li"><span>${e(x.u)} <span class="mut">${x.role}</span></span>${x.u!==session.u?`<button class="alt sm" onclick="delUser(${i})">Remove</button>`:''}</div>`).join('')}
- <label>New username</label><input type="text" id="nu" autocapitalize="off" autocomplete="off"><label>Temporary password (min 10)</label><input type="password" id="np"><label>Role</label><select id="nr"><option value="staff">Staff</option><option value="admin">Admin</option></select><div class="row"><button class="sm" onclick="addUser()">Add account</button></div></div>`:''}
+ ${adm?offAdminHtml():''}
+ <div class="card"><h3 style="margin-top:0">Change my password</h3>
+ <label>Your current password</label><input type="password" id="rpo" autocomplete="current-password"><label>New password (min 10 characters)</label><input type="password" id="rp" autocomplete="new-password"><label>Confirm new password</label><input type="password" id="rp2" autocomplete="new-password"><div class="row"><button class="sm" onclick="resetPw()">Update password</button></div></div>
+ ${adm?`<div class="card"><h3 style="margin-top:0">Accounts</h3><p class="mut" style="margin-top:0">Nobody sets another person's password. <b>Reset</b> gives that person a one-time code; they pick their name at Staff login, enter the code and choose a new password. Their old password keeps working until then.</p>${users.map((x,i)=>`<div class="li"><span>${e(x.u)} <span class="mut">${x.role}${x.off?' · officer':''} · ${acctState(x)}</span></span>${x.u!==session.u?`<span><button class="alt sm" onclick="resetCode(${i})">Reset</button> <button class="alt sm" onclick="delUser(${i})">Remove</button></span>`:''}</div>`).join('')}
+ <label>New account name</label><input type="text" id="nu" autocapitalize="off" autocomplete="off"><label>Role</label><select id="nr"><option value="staff">Staff</option><option value="admin">Admin</option></select><div class="row"><button class="sm" onclick="addUser()">Add account</button></div><p class="mut" style="margin:6px 0 0">The new person gets a one-time code and chooses their own password.</p><div id="acctCodeAnchor">${lastCode&&!(users.find(x=>x.u===lastCode.u)||{}).off?codeBox():''}</div></div>`:''}
  <p id="amsg" style="color:#c0392b"></p>`}
-async function resetPw(){const i=users.findIndex(x=>x.u===$('#ru').value),p=$('#rp').value;
- if(i<0||!session||(session.role!=='admin'&&users[i].u!==session.u))return;if(p.length<10)return say('Password must be at least 10 characters.');
- {const me=users.find(x=>x.u===session.u);if(!me||(await hashPw(($('#rpo')||{}).value||'',me.salt)).hash!==me.hash)return say('Your current password is not correct.')}
- Object.assign(users[i],await hashPw(p),{fails:0,lock:0});saveU();$('#rp').value='';$('#rpo').value='';say('Password updated.')}
-async function addUser(){if(!session||session.role!=='admin')return;const u=$('#nu').value.trim(),p=$('#np').value;
- if(!u)return say('Enter a username.');if(users.some(x=>x.u.toLowerCase()===u.toLowerCase()))return say('Username already exists.');if(p.length<10)return say('Password must be at least 10 characters.');
- users.push({u,role:$('#nr').value,...await hashPw(p),fails:0,lock:0});saveU();render()}
-function delUser(i){if(!session||session.role!=='admin'||users[i].u===session.u)return;if(!confirm('Remove '+users[i].u+'?'))return;users.splice(i,1);saveU();render()}
+/* ---- admin access for officers: an admin checks officers; each one gets a one-time code and chooses their own password ---- */
+const CODE_DAYS=7,CODE_CH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let lastCode=null;
+function genCode(){const r=crypto.getRandomValues(new Uint8Array(8));let c='';r.forEach(b=>c+=CODE_CH[b%CODE_CH.length]);return c}
+async function issueCode(a){const c=genCode();a.code={...await hashPw(c),exp:Date.now()+CODE_DAYS*864e5};a.fails=0;a.lock=0;saveU();lastCode={u:a.u,c:c.slice(0,4)+'-'+c.slice(4)}}
+function acctState(a){return a.code?(a.code.exp<Date.now()?'<span style="color:#c0392b">code expired</span>':(a.hash?'reset code given':'waiting to choose a password')):(a.hash?'password set':'no password')}
+const offAcct=n=>users.find(x=>x.off===n);
+function codeBox(){if(!lastCode||!users.some(x=>x.u===lastCode.u))return'';const c=lastCode;
+ return`<div style="border:2px solid var(--ok);border-radius:10px;padding:12px;margin:10px 0"><b>One-time code for ${e(c.u)}:</b> <span style="font:700 24px ui-monospace,monospace;letter-spacing:2px">${e(c.c)}</span>
+ <p class="mut" style="margin:6px 0 0">Give it to them in person. It works once and expires in ${CODE_DAYS} days. They tap <b>Staff setup</b>, pick their name, enter the code and choose their own password. This code is not shown again.</p><div class="row"><button class="alt sm" onclick="lastCode=null;render()">I gave it to them</button></div></div>`}
+function offAdminHtml(){return`<div class="card"><h3 style="margin-top:0">Admin access</h3><p class="mut" style="margin-top:0">Check the officers who can open Staff setup as an admin. Each one chooses their own password.</p>
+ ${officers.length?officers.map((o,i)=>{const a=offAcct(o.name),me=a&&a.u===session.u,on=a&&a.role==='admin';
+  return`<div class="li"><label class="chk" style="margin:0;flex:1"><input type="checkbox" ${on?'checked':''} ${me?'disabled':''} onchange="setOffAdmin(${i},this.checked)">${e(o.name)}${on?` <span class="mut">· ${me?'you':acctState(a)}</span>`:''}</label>${on&&!me?`<button class="alt sm" onclick="resetCode(${users.indexOf(a)})">New code</button>`:''}</div>`}).join(''):'<p class="mut">Add officers in the Officers section below first.</p>'}
+ ${lastCode&&(users.find(x=>x.u===lastCode.u)||{}).off?codeBox():''}</div>`}
+async function setOffAdmin(i,on){if(!session||session.role!=='admin')return;const o=officers[i];if(!o)return;
+ let a=offAcct(o.name)||users.find(x=>!x.off&&x.u.toLowerCase()===o.name.toLowerCase());
+ try{if(on){if(a){a.off=o.name;if(a.role!=='admin'){a.prevRole=a.role;a.role='admin'}if(!a.hash)await issueCode(a);else saveU()}
+  else{a={u:o.name,off:o.name,auto:1,role:'admin',fails:0,lock:0};users.push(a);await issueCode(a)}}
+ else if(a&&a.u!==session.u){if(!confirm('Remove admin access for '+o.name+'?'))return render();
+  if(a.auto)users.splice(users.indexOf(a),1);else{a.role=a.prevRole||'staff';delete a.prevRole;delete a.off}saveU();if(lastCode&&lastCode.u===a.u)lastCode=null}}
+ catch{say('A secure (HTTPS) connection is required.')}render()}
+async function resetCode(i){const a=users[i];if(!session||session.role!=='admin'||!a||a.u===session.u)return;
+ if(a.hash&&!confirm('Give '+a.u+' a one-time code to choose a new password?'))return;try{await issueCode(a)}catch{return say('A secure (HTTPS) connection is required.')}render();
+ const b=document.querySelector('#acctCodeAnchor');if(b)b.scrollIntoView({block:'center'})}
+async function resetPw(){const me=users.find(x=>x.u===session.u),p=$('#rp').value;if(!me)return;
+ if((await hashPw(($('#rpo')||{}).value||'',me.salt)).hash!==me.hash)return say('Your current password is not correct.');
+ if(p.length<10)return say('Password must be at least 10 characters.');if(p!==$('#rp2').value)return say('Passwords do not match.');
+ Object.assign(me,await hashPw(p),{fails:0,lock:0});delete me.code;saveU();$('#rp').value='';$('#rp2').value='';$('#rpo').value='';say('Password updated.')}
+async function addUser(){if(!session||session.role!=='admin')return;const u=$('#nu').value.trim();
+ if(!u)return say('Enter a name.');if(users.some(x=>x.u.toLowerCase()===u.toLowerCase()))return say('That name already has an account.');
+ const a={u,role:$('#nr').value,fails:0,lock:0};const o=officers.find(x=>x.name.toLowerCase()===u.toLowerCase());if(o&&!offAcct(o.name))a.off=o.name;
+ users.push(a);try{await issueCode(a)}catch{users.pop();return say('A secure (HTTPS) connection is required.')}render()}
+function delUser(i){if(!session||session.role!=='admin'||users[i].u===session.u)return;if(!confirm('Remove '+users[i].u+'?'))return;if(lastCode&&lastCode.u===users[i].u)lastCode=null;users.splice(i,1);saveU();render()}
 /* ---- copies (original + English translation), download / print / email ---- */
 let srvTranslate=false;
 const CAP={sample:null,downloads:null};
@@ -707,7 +745,7 @@ html.bigtext button{font-size:19px}html.bigtext button.sm{font-size:17px;padding
   const b=document.getElementById('pages');if(!b)return;const r=b.getBoundingClientRect();b.scrollLeft=fx*b.scrollWidth-(p.cx-r.left);window.scrollTo(0,window.scrollY+r.top+fy*b.scrollHeight-p.cy)};
  document.addEventListener('touchend',ev=>{if(pz&&ev.touches.length<2)end()});document.addEventListener('touchcancel',()=>{if(pz)end()})})();
 /* ---- app version: shown at the bottom of every screen, and a notice after an update ---- */
-const APP_VER='20261124h',APP_NOTES='Only the form zooms now: pinch the form or use − / ＋. The rest of the screen no longer zooms.';
+const APP_VER='20261124i',APP_NOTES='Staff setup: check which officers have admin access. Each admin chooses their own password with a one-time code.';
 (function(){const el=document.createElement('p');el.id='appver';el.style.cssText='text-align:center;font-size:12px;color:var(--mut);margin:4px 0 18px';el.textContent='App version '+APP_VER;const mn=document.querySelector('main');if(mn)mn.after(el);
  let seen=null;try{seen=localStorage.getItem(NS+'seenVer');localStorage.setItem(NS+'seenVer',APP_VER)}catch{}
  if(!seen||seen===APP_VER)return;const b=document.createElement('div');b.id='updBanner';b.setAttribute('role','status');
